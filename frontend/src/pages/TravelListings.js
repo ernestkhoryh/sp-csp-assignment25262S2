@@ -7,19 +7,21 @@ TextField,
 Box,
 CircularProgress,
 Alert,
-Select,
-MenuItem,
-FormControl,
-InputLabel,
+// Select,
+// MenuItem,
+// FormControl,
+// InputLabel,
 Dialog,
 DialogTitle,
 DialogContent,
 DialogActions,
 } from '@mui/material';
 import { travelService } from '../services/api';
-import SearchIcon from '@mui/icons-material/Search';
+// import SearchIcon from '@mui/icons-material/Search';
 import { useNavigate } from 'react-router-dom';
 import { isAdmin } from '../utils/auth';
+import Dropdown from '../components/TravelListingDropdown';
+import TravelSelection from '../components/TravelSelection';
 
 const defaultListingForm = {
   title: '',
@@ -149,35 +151,20 @@ Choose a travel package to view itineraries
   </Box>
 )}
 
-<Box sx={{ mb: 4 }}>
-<TextField
-fullWidth
-variant="outlined"
-placeholder="Search packages by title, country, or description..."
-value={searchTerm}
-onChange={(e) => setSearchTerm(e.target.value)}
-InputProps={{ startAdornment: <SearchIcon sx={{ mr: 1, color: 'text.secondary' }} /> }}
+<TravelSelection
+  searchTerm={searchTerm}
+  onSearchChange={setSearchTerm}
 />
-</Box>
 
-<FormControl fullWidth sx={{ mb: 3 }}>
-<InputLabel>Select Travel Package</InputLabel>
-<Select
-value={selectedId}
-label="Select Travel Package"
-onChange={(e) => setSelectedId(e.target.value)}
-disabled={filteredListings.length === 0 || loading}
->
-<MenuItem value="" disabled>
-{filteredListings.length === 0 ? 'No packages available' : 'Choose a package...'}
-</MenuItem>
-{filteredListings.map((listing) => (
-<MenuItem key={listing.travelID} value={listing.travelID}>
-{listing.title || 'Untitled'} - {listing.country || 'Unknown'} ({formatCurrency(listing.price)})
-</MenuItem>
-))}
-</Select>
-</FormControl>
+
+<Dropdown
+  listings={listings}
+  filteredListings={filteredListings}
+  selectedId={selectedId}
+  onChange={setSelectedId}
+  loading={loading}
+  formatCurrency={formatCurrency}
+/>
 
 {selectedId && (
 <Box sx={{ mt: 3, display: 'flex', gap: 2 }}>
