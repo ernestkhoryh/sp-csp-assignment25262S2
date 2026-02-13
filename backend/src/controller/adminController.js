@@ -1,8 +1,6 @@
-// const db = require('../data/db');
-// const bcrypt = require('../middlewares/bcryptMiddleware');
-// const jwt = require('jsonwebtoken');
+// \backend\src\controller\adminController.js
+
 const adminModel = require('../model/adminModel');
-// const { get } = require('../routes/adminRoutes');
 
 const bcrypt = require('bcrypt');
 
@@ -44,6 +42,7 @@ const loginControl = async (req, res, next) => {
       success: true, 
       message: 'Login successful',
       token: authResult.token,
+      // Optional: include user info
       user: authResult.user
     });
   } catch (error) {
@@ -155,12 +154,15 @@ const checkUsernameOrEmailExist = async (req, res, next) => {
     }
   }
 };
-
     
 const postUser = async (req, res, next) => { 
 
   console.log('\n=== POST USER CONTROLLER ===');
   console.log('Request body:', req.body);
+
+  const userid = req.params.userid;
+  const updateData = req.params.body;
+
     try {
         const { email, username, password, role = 'admin' } = req.body;
         
@@ -168,17 +170,11 @@ const postUser = async (req, res, next) => {
         if (!email || !username || !password) {
             return res.status(400).json({
                 success: false,
-                error: { message: "Email, username, and password are required" }
+                error: { message: "At least one of Email, username, and password is required" }
             });
-        }
-        
-        // Hash the password - now 'await' is valid in async function
-        const hash = await bcrypt.hash(password, 10);
-        console.log('Hashed password:', hash);
-        console.log('Hash length:', hash.length);
-        
-        // Create user with hashed password
-        const result = await adminModel.createUser(username, email, role, hash);
+        }              
+
+        const result = await adminModel.createUser(username, email, role, password);
         console.log('User created successfully');
 
         res.status(201).json({
@@ -225,25 +221,32 @@ const getUserByUserid = async (req, res) => {
     }
 };
 
-
 const putUserByUserid = async (req, res) => {
+    console.log('=== PUT USER START ===');
+    console.log('User ID:', req.params.userid);
+    console.log('Update data:', req.body);
+    
     const userid = req.params.userid;
-    const data = {
-        email: req.body.email,
-        password: req.body.password
-    };
-    const callback = (error, results, fields) => {
-    if (error) {
-        console.error("Error updating user:", error);
-        res.status(500).json({ error: error.message });
-    } else {
+    const updateData = req.body;
+    
+    try {
+        console.log('About to call model function...');
+        const result = await adminModel.updateUserByUserid(userid, updateData);
+        console.log('Model function completed successfully');
+        
         res.status(200).json({
             success: true,
-            data: results
+            message: 'User updated successfully',
+            data: result
+        });
+    } catch (error) {
+        console.error("Error updating user:", error);
+        res.status(500).json({ 
+            success: false, 
+            error: error.message 
         });
     }
-    };
-    adminModel.updateUserByUserid(userid, data, callback);
+    console.log('=== PUT USER END ===');
 };
 
 const delUserByUserid = async (req, res) => {
@@ -259,263 +262,266 @@ const delUserByUserid = async (req, res) => {
     adminModel.dropUserByUserid(userid, callback);
 };
 
-// const postUser = (req, res) => {
-//     const data = {
-//         username: req.body.username,
-//         email: req.body.email,
-//         role: req.body.role,
-//         password: req.body.password
-//     };
-
-//     const callback = (error, results, fields) => {
-//         if (error) {
-//             console.error("Error creating user:", error);
-//             res.status(500).json(error);
-//         } else {
-//             res.status(201).json({
-//                 success: true,
-//                 data: results,
-//                 insertedId: results.insertId
-//             });
-//         }
-//     };
-//     adminModel.insertUser(data, callback);
-// };
-
 // ================ TRAVEL LISTING FUNCTIONS =================
+
 // Create new travel listing
-const postTravelListing = (req, res) => {
-    const data = {
-        title: req.body.title,
-        description: req.body.description,
-        country: req.body.country,
-        travelPeriod: req.body.travelPeriod,
-        price: req.body.price,
-        imageURL: req.body.imageURL,
-        dateInserted: new Date()
-    };
+const postTravelListing = async (req, res) => {
+  try {
+    console.log('Request body:', req.body); // Debug log
+    
+    const {
+      title,
+      description,
+      country,
+      travelPeriod,
+      price,
+      imageURL
+    } = req.body;
 
-    const callback = (error, results, fields) => {
-        if (error) {
-            console.error("Error creating travel listing:", error);
-            res.status(500).json(error);
-        } else {
-            res.status(201).json({
-                success: true,
-                data: results,
-                insertedId: results.insertId
-            });
-        }
-    };
+    // Validate required fields
+    if (!title || !description || !country || !travelPeriod || !price || !imageURL) {
+      return res.status(400).json({
+        success: false,
+        error: { message: "All fields are required: title, description, country, travelPeriod, price, imageURL" }
+      });
+    }
 
-    adminModel.insertTravelListing(data, callback);
+    // Call model function (this should return a promise, not expect response object)
+    const result = await adminModel.createTravelListing(
+      title,
+      description,
+      country,
+      travelPeriod,
+      price,
+      imageURL
+    );
+
+    res.status(201).json({
+      success: true,
+       result,
+      insertedId: result.insertId
+    });
+  } catch (error) {
+    console.error("Error creating travel listing:", error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
 };
 
-// Get all listings (admin view)
-// const getTravelListings = (req, res, next) => {
-//     const callback = (error, results, fields) => {
-//       if (error) {
-//         console.error(error); 
-//         res.status(500).json(error);
-//       } else {
-//         res.status(200).json(results);
-//       }
-//     };
-//     adminModel.selectTravelListings(callback);
-// };
-
-// Get single listing
-// const getTravelListingByTravelId = (req, res) => {
-//     const travelID = req.params.travelID;
-
-//     console.log('🔍 Looking for travel listing with ID:', travelID);
-//     console.log('ID type:', typeof travelID);
-
-//     const callback = (error, results, fields) => {
-//         if (error) {
-//             console.error("Error fetching travel listing:", error);
-//             res.status(500).json(error);
-//         } else {
-//             console.log('📊 Query results:', results);
-//             console.log('Results count:', results.length);
-            
-//             if (results.length === 0) {
-//                 res.status(404).json({
-//                     success: false,
-//                     message: 'Travel listing not found',
-//                     searchedId: travelID,
-//                     suggestion: 'Try getting all IDs first with /api/admin/travel-listings-ids'
-//                 });
-//             } else {
-//                 res.status(200).json({
-//                     success: true,
-//                     count: results.length,
-//                     data: results[0]  // Return first item instead of array
-//                 });
-//             }
-//         }
-//     };
-//     adminModel.selectTravelListingByTravelId(travelID, callback);
-// };
-
-// Update listing
-const putTravelListingByTravelId = (req, res) => {
-  
+const putTravelListingByTravelid = async (req, res) => {
+  try {
     const travelID = req.params.travelID;
-    const data = {
-        title: req.body.title,
-        description: req.body.description,
-        country: req.body.country,
-        travelPeriod: req.body.travelPeriod,
-        price: req.body.price,
-        imageURL: req.body.imageURL,
-        dateInserted: new Date()
-    };
+    
+    const {
+      title,
+      description,
+      country,
+      travelPeriod,
+      price,
+      imageURL
+    } = req.body;
 
-    const callback = (error, results, fields) => {
-        if (error) {
-            console.error("Error updating travel listing:", error);
-            res.status(500).json(error);
-        } else {
-            res.status(200).json({
-                success: true,
-                data: results
-            });
-        }
-    };
-    adminModel.updateTravelListingbyTravelId(travelID, data, callback);
+    // Call model function (returns a promise)
+    const result = await adminModel.updateTravelListingByTravelid(
+      travelID,       
+      title,
+      description,
+      country,
+      travelPeriod,
+      price,
+      imageURL
+    );
+
+    res.status(200).json({
+      success: true,
+       result
+    });
+  } catch (error) {
+    console.error("Error updating travel listing:", error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
 };
 
 // Delete listing
-const delTravelListingByTravelId = (req, res) => {
+const delTravelListingByTravelid = async (req, res) => {
+  try {
     const travelID = req.params.travelID;
-    const callback = (error, results, fields) => {
-        if (error) {
-            console.error("Error deleting travel listing:", error);
-            res.status(500).json(error);
-        } else {
-            res.status(204).send();
-        }
-    };
-    adminModel.deleteTravelListingByTravelId(travelID, callback);
+
+    // Call model function (returns a promise)
+    const result = await adminModel.dropTravelListingByTravelid(travelID);
+
+    res.status(200).json({  // Changed from 204 to 200 to return data
+      success: true,
+      message: 'Travel listing deleted successfully',
+       result
+    });
+  } catch (error) {
+    console.error("Error deleting travel listing:", error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
 };
 
 // ================ ITINERARY FUNCTIONS =================
 
-// Select itinerary by travelID
-const getItineraryByTravelId = (req, res) => {
-  const travelID = req.params.travelID;
-  const callback = (error, results, fields) => {
-    if (error) {
-      console.error("Error fetching itinerary:", error);
-      res.status(500).json(error);
-    } else {
-      res.status(200).json(results);
-    }
-  };
-  adminModel.selectItineraryByTravelId(travelID, callback);
-};
-
 // Get all itineraries
-const getItineraries = (req, res) => {
-  const callback = (error, results, fields) => {
-    if (error) {
-      console.error("Error fetching itineraries:", error);
-      res.status(500).json(error);
-    } else {
-      res.status(200).json(results);
-    }
-  };
-  adminModel.selectItineraries(callback);
+
+const getAllItineraries = async (req, res) => {
+  try {
+    // Call the model function (which returns a promise)
+    const results = await adminModel.readAllItineraries();
+    
+    res.status(200).json(results);
+  } catch (error) {
+    console.error("Error fetching all itineraries:", error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
 };
 
 // Get itinerary by itineraryID
-const getItineraryByItineraryId = (req, res) => {
-  const itineraryID = req.params.itineraryID;
-  const callback = (error, results, fields) => {
-    if (error) {
-      console.error("Error fetching itinerary:", error);
-      res.status(500).json(error);
-    } else {
-      res.status(200).json(results);
-    }
-  };
-  adminModel.selectItineraryByItineraryId(itineraryID, callback);
+const getItineraryByItineraryid = async (req, res) => {
+  try {
+    const itineraryID = req.params.itineraryID;
+
+    // Call model function (returns a promise)
+    const result = await adminModel.readItineraryByItineraryid(itineraryID);
+
+    res.status(200).json(result);
+  } catch (error) {
+    console.error("Error fetching itinerary:", error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
 };
 
 // Create itinerary
-const postItineraryByTravelId = (req, res) => {
-  const travelID = req.params.travelID;
+const postItineraryByTravelid = async (req, res) => {
+  try {
+    const travelID = req.params.travelID;
 
+    console.log('🔍 === DEBUG START ===');
+    console.log('🔍 travelID:', travelID, 'type:', typeof travelID);
+    console.log('🔍 req.body:', req.body);
+    console.log('🔍 req.body.day:', req.body.day, 'type:', typeof req.body.day);
+    console.log('🔍 req.body.activity:', req.body.activity);
 
- console.log('🔍 === DEBUG START ===');
-  console.log('🔍 travelID:', travelID, 'type:', typeof travelID);
-  console.log('🔍 req.body:', req.body);
-  console.log('🔍 req.body.day:', req.body.day, 'type:', typeof req.body.day);
-  console.log('🔍 req.body.activity:', req.body.activity);
+    const data = {
+      day: req.body.day,
+      activity: req.body.activity
+    };
 
-
-  const data = {
-    day: req.body.day,
-    activity: req.body.activity
-  };
-  const callback = (error, results, fields) => {
-    if (error) {
-      console.error("Error creating itinerary:", error);
-      res.status(500).json(error);
-    } else {
-      res.status(201).json({
-        success: true,
-        data: {
-          itineraryID: results.insertId,
-          travelID: travelID,
-          day: data.day,
-          activity: data.activity
-        }
+    // Validate required fields
+    if (!data.day || !data.activity) {
+      return res.status(400).json({
+        success: false,
+        error: { message: "Day and activity are required" }
       });
     }
-  };
-  adminModel.insertItineraryByTravelId(travelID, data, callback);
+
+    // Call model function (returns a promise)
+    const result = await adminModel.createItineraryByTravelid(travelID, data);
+
+    res.status(201).json({
+      success: true,
+      data: {
+        itineraryID: result.insertId,
+        travelID: travelID,
+        day: data.day,
+        activity: data.activity
+      }
+    });
+  } catch (error) {
+    console.error("Error creating itinerary:", error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
 };
 
-// Update itinerary
-const putItineraryByItineraryId = (req, res) => {
-  const itineraryID = req.params.itineraryID;
-  const data = {
-    travelID: req.body.travelID,
-    day: req.body.day,
-    activity: req.body.activity
-  };
-  const callback = (error, results, fields) => {
-    if (error) {
-      console.error("Error updating itinerary:", error);
-      res.status(500).json(error);
-    } else {
-      res.status(200).json({
-        success: true,  
-        data: results
+// Update itinerary - CORRECTED CONTROLLER
+const putItineraryByItineraryid = async (req, res) => {
+  try {
+    const itineraryID = req.params.itineraryID;
+    
+    console.log('=== DEBUG PUT ITINERARY ===');
+    console.log('itineraryID:', itineraryID);
+    console.log('req.body:', req.body);
+    
+    const data = {
+      travelID: req.body.travelID,
+      day: req.body.day,
+      activity: req.body.activity
+    };
+    
+    console.log('Processed data:', data);
+    console.log('typeof activity:', typeof data.activity);
+    console.log('activity value:', data.activity);
+
+    // Validate required fields
+    if (!data.day || !data.activity || !data.travelID) {
+      return res.status(400).json({
+        success: false,
+        error: { message: "Day, activity, and travelID are required" }
       });
     }
-  };
-  adminModel.updateItineraryByItineraryId(itineraryID, data, callback);
-};
 
-// Delete itinerary
-const delItineraryByItineraryId = (req, res) => {
-  const itineraryID = req.params.itineraryID;
-  const callback = (error, results, fields) => {
-    if (error) {
-      console.error("Error deleting itinerary:", error);
-      res.status(500).json(error);
-    } else {
-      res.status(204).send();
+    // Ensure activity is a string, not an object
+    if (typeof data.activity === 'object') {
+      data.activity = JSON.stringify(data.activity);
     }
-  };
-  adminModel.deleteItineraryByItineraryId(itineraryID, callback);
+
+    // Call model function
+    const result = await adminModel.updateItineraryByItineraryid(itineraryID, data);
+
+    res.status(200).json({
+      success: true,
+       result
+    });
+  } catch (error) {
+    console.error("Error updating itinerary:", error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
 };
 
 
-// Debugging function to log all model methods
+// Delete itinerary - MODERN ASYNC/AWAIT VERSION
+const delItineraryByItineraryid = async (req, res) => {
+  try {
+    const itineraryID = req.params.itineraryID;
+
+    // Call model function (returns a promise)
+    const result = await adminModel.dropItineraryByItineraryid(itineraryID);
+
+    res.status(200).json({  // Changed from 204 to 200 to return data
+      success: true,
+      message: 'Itinerary deleted successfully',
+       result
+    });
+  } catch (error) {
+    console.error("Error deleting itinerary:", error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+};
+// ================ Debug FUNCTIONS =================
 
 const debugModelMethods = (req, res) => {
     console.log('🔍 Checking adminModel methods...');
@@ -550,17 +556,14 @@ module.exports = {
   delUserByUserid,
 
   postTravelListing,
-  // getTravelListings,
-  // getTravelListingByTravelId
-  putTravelListingByTravelId,
-  delTravelListingByTravelId,
+  putTravelListingByTravelid,
+  delTravelListingByTravelid,
 
-  getItineraryByTravelId,
-  getItineraryByItineraryId,
-  getItineraries,
-  postItineraryByTravelId,
-  delItineraryByItineraryId,
-  putItineraryByItineraryId,
+  getItineraryByItineraryid,
+  getAllItineraries,
+  postItineraryByTravelid,
+  delItineraryByItineraryid,
+  putItineraryByItineraryid,
 
   debugModelMethods
 };

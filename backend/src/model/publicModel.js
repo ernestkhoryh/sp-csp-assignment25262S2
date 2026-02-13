@@ -12,7 +12,7 @@ const readAllTravelListings = async () => {
   return rows;
 };
 
-const readTravellistingsByDescriptionSubstring = async (substring) => {
+const searchTravellistingsByDescriptionSubstring = async (substring) => {
   const sql = `
     SELECT travelID, title, description, country,
            travelPeriod, price, imageURL, dateInserted
@@ -26,7 +26,7 @@ const readTravellistingsByDescriptionSubstring = async (substring) => {
   return rows;
 }
 
-const readTravelListingsByTravelid = async (travelID) => {
+const readTravelListingByTravelid = async (travelID) => {
   const sql = `
     SELECT travelID, title, description, country,
            travelPeriod, price, imageURL, dateInserted
@@ -65,9 +65,9 @@ const searchTravelListings = async (substring) => {
 
 
 module.exports = {
-  readAllTravelListings,
-  readTravellistingsByDescriptionSubstring,
-  readTravelListingsByTravelid,
-  readItinerariesByTravelid,
-  searchTravelListings
+  readAllTravelListings,  
+  readTravelListingByTravelid,
+  searchTravellistingsByDescriptionSubstring,
+
+  readItinerariesByTravelid
 };

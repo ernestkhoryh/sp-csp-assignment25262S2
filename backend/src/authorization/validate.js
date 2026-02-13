@@ -8,9 +8,11 @@ const validateInsertion=function(req,res,next){
         var role = req.body.role;
 
         var usernamePattern=/^[a-zA-Z0-9]+$/;
-        //var emailPattern=/^.+@.+\..+$/;//abc@xyz.com
+        var emailPattern=/^.+@.+\..+$/;//abc@xyz.com
         var passwordPattern=/^[a-zA-Z0-9]{8,}$/;
 
+        // In your validation (more permissive)
+// var passwordPattern = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
 
         if(usernamePattern.test(username) && validator.isEmail(email) && passwordPattern.test(password)
             && (role=="admin" || role=="user")){

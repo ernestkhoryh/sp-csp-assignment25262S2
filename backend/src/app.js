@@ -1,6 +1,8 @@
+// \backend\src\app.js
 
 const express = require('express');
 const bodyParser = require('body-parser');
+require('dotenv').config();
 
 const publicController = require('./controller/publicController');
 const adminController = require('./controller/adminController');
@@ -22,28 +24,44 @@ const app = express();
 
 console.log('adminController:', adminController);
 console.log('typeof getAllUsers:', typeof adminController.getAllUsers);
+console.log('authorizer type:', typeof authorizer);
+console.log('authorizer.verifyToken:', typeof authorizer.verifyToken);
 
+
+app.use(express.json());  // Built-in Express JSON parser
+app.use(express.urlencoded({ extended: true }));
+
+
+baseURL = process.env.BASE_URL;
+reactURL = process.env.REACT_APP_API_URL;
 
 app.use(cors({
-  origin: ['http://localhost:3001', 'http://localhost:3000'],
+  origin: [baseURL, reactURL],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
+
 app.options('*', cors()); // include before other routes
 
 
-// var urlencodedParser = bodyParser.urlencoded({ extended: false });
-// app.use(urlencodedParser);//attach body-parser middleware
-// app.use(bodyParser.json());//parse json data
 
-// Replace with this:
-app.use(express.json());  // Built-in Express JSON parser
-app.use(express.urlencoded({ extended: true }));
+// After your CORS configuration, add this:
+app.use((req, res, next) => {
+  // Allow all origins during development
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  
+  if (req.method === 'OPTIONS') {
+    res.sendStatus(200);
+  } else {
+    next();
+  }
+});
 
-// Then CORS
-app.use(cors());
 
+//-----Routes--------------
 
 app.get('/', function (req, res) {
     res.send("This confirms your webserver is running");
@@ -83,7 +101,7 @@ app.put('/user/:userid',
 //DELETE /user/:userid - Admin/Protected route
 app.delete('/user/:userid', 
     validate.validateIntID('userid'),
-    authorizer.verifyToken,
+    authorizer.verifyToken ,
     adminController.delUserByUserid
 );
 
@@ -102,49 +120,91 @@ app.get('/test-token', authenticateToken, adminController.testToken);
 //----Travel-Listings-Routes--------------
 
 //GET /travel-listings/
-// CORRECT: Just pass the controller function
 app.get('/travel-listings', 
     publicController.getAllTravelListings);
 
 // POST /travel-listings
-app.post('/travel-listings',
-    adminController.postTravelListing
+app.post('/travel-listings', 
+    adminController.postTravelListing  
 );
 
 
 // GET /travel-listings/search
 app.get('/travel-listings/search', 
-    publicController.findTravelListings
+    publicController.findTravellistingsByDescriptionSubstring
 );
 
 // GET /travel-listings/:travelID/itineraries
 app.get('/travel-listings/:travelID/itineraries', 
-    publicController.getItinerariesByTravelid  // Let Express handle it
+    publicController.getItinerariesByTravelid  
 );
 
 // GET /travel-listings/:travelID
 app.get('/travel-listings/:travelID', 
-    publicController.getTravelListingByTravelid  // Just reference the controller method
+    publicController.getTravelListingByTravelid 
 );
 
-// PUT /itineraries/:itineraryID
-app.put('/itineraries/:itineraryID',
+
+app.put('/travel-listings/:travelID', 
+    validate.validateIntID('travelID'),
+    adminController.putTravelListingByTravelid  
+);
+
+app.delete('/travel-listings/:travelID', 
+    authorizer.verifyToken,
+    validate.validateIntID('travelID'),
+    adminController.delTravelListingByTravelid  
+);
+
+
+//----Itineraries-Routes--------------
+
+//GET /itineraries/
+app.get('/itineraries', 
+    adminController.getAllItineraries);
+
+app.get('/itineraries/:itineraryID',
+    adminController.getItineraryByItineraryid);
+
+app.put('/itineraries/:itineraryID', 
     validate.validateIntID('itineraryID'),
-    adminController.putItineraryByItineraryId
+    adminController.putItineraryByItineraryid
 );
 
-// DELETE /itineraries/:itineraryID
-app.delete('/itineraries/:itineraryID',
+app.post('/travel-listings/:travelID/itinerary', 
+    authorizer.verifyToken,
+    validate.validateIntID('travelID'),
+    adminController.postItineraryByTravelid 
+);
+
+app.delete('/itineraries/:itineraryID', 
     validate.validateIntID('itineraryID'),
-    adminController.delItineraryByItineraryId
+    adminController.delItineraryByItineraryid
 );
 
+//------Debug-route-------------------------
+
+app.get('/debug-routes', (req, res) => {
+  const routes = [];
+  app._router.stack.forEach((middleware) => {
+    if (middleware.route) {
+      routes.push({
+        path: middleware.route.path,
+        methods: Object.keys(middleware.route.methods).map(m => m.toUpperCase())
+      });
+    }
+  });
+  
+  res.json({
+    routes: routes,
+    loginFunctionExists: !!adminController.loginControl,
+    loginRouteExpected: '/user/login'
+  });
+});
 
 console.log('validate:', validate);
 console.log('validateInsertion:', validate.validateInsertion);
 console.log('publicController:', publicController);
 console.log('loginControl:', adminController.loginControl);
 
-
-// Export the app for use in other files (like server.js)
 module.exports = app;

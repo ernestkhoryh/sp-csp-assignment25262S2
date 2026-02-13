@@ -45,7 +45,7 @@ const Login = () => {
       const response = await authService.login(formData);
       console.log('Login response:', response);
       
-      if (response.data.token) {
+      if (response.data.token && response.data.user.role) {
         localStorage.setItem('token', response.data.token);
         
         // Store user info
