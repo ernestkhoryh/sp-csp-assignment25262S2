@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const baseurl = process.env.REACT_APP_API_URL;
+const baseurl = process.env.REACT_APP_API_URL ;
 
 // Create axios instance with base URL
 const api = axios.create({
@@ -94,11 +94,11 @@ export const authService = {
 
 // User services
 export const userService = {
-  getAllUsers: () => api.get('/user'),
-  getUserById: (id) => api.get(`/user/${id}`),
-  createUser: (userData) => api.post('/user', userData),
-  updateUser: (id, userData) => api.put(`/user/${id}`, userData),
-  deleteUser: (id) => api.delete(`/user/${id}`),
+  getAllUsers: () => api.get('/users'),
+  getUserById: (id) => api.get(`/users/${id}`),
+  createUser: (userData) => api.post('/users', userData),
+  updateUser: (id, userData) => api.put(`/users/${id}`, userData),
+  deleteUser: (id) => api.delete(`/users/${id}`),
 };
 
 // Travel services
@@ -118,6 +118,8 @@ export const travelService = {
   getListingById: (id) => api.get(`/travel-listings/${id}`),
   getItineraries: (travelId) => api.get(`/travel-listings/${travelId}/itineraries`),
   createListing: (listingData) => api.post('/travel-listings', listingData),
+  updateListing: (id, listingData) => api.put(`/travel-listings/${id}`, listingData),
+  deleteListing: (id) => api.delete(`/travel-listings/${id}`),
   
   searchListings: async (query) => {
     console.log('TravelService: Searching for', query);

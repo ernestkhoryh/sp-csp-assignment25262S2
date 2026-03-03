@@ -180,6 +180,8 @@ app.delete('/itineraries/:itineraryID',
 
 //------Debug-route-------------------------
 
+console.log("=== DEBUG / REGISTERED ROUTES ===");
+
 app.get('/debug-routes', (req, res) => {
   const routes = [];
   app._router.stack.forEach((middleware) => {
@@ -187,6 +189,15 @@ app.get('/debug-routes', (req, res) => {
       routes.push({
         path: middleware.route.path,
         methods: Object.keys(middleware.route.methods).map(m => m.toUpperCase())
+      });
+    } else if (middleware.name === 'router') {
+      middleware.handle.stack.forEach((handler) => {
+        if (handler.route) {
+          routes.push({
+            path: handler.route.path,
+            methods: Object.keys(handler.route.methods).map(m => m.toUpperCase())
+          });
+        }
       });
     }
   });
